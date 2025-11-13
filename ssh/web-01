@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Sever-01 login
+
+eval $("ssh-agent")
+ssh-add ~/.ssh/Intranet_files
+
+ssh ubuntu@44.204.63.219
