@@ -1,18 +1,46 @@
 #!/usr/bin/env bash
-# Sets up a custom 404 page in Nginx
+# Configures Nginx with a custom 404 page and redirect
 
-# Install nginx if not installed
-sudo apt-get update -y
-sudo apt-get install -y nginx
+apt-get update -y
+apt-get install nginx -y
 
-# Create the custom 404 page
-echo "Ceci n'est pas une page" | sudo tee /var/www/html/error_404.html
+# Create the index page
+echo "Holberton School for the win!" > /var/www/html/index.html
 
-# Update Nginx config only if error_page is NOT already added
-if ! grep -q "error_page 404 /error_404.html;" /etc/nginx/sites-available/default; then
-    sudo sed -i '/server_name _;/a \    error_page 404 /error_404.html;\n    location = /error_404.html {\n        root /var/www/html;\n        internal;\n    }' /etc/nginx/sites-available/default
-fi
+# Create custom 404 page
+echo "Ceci n'est pas une page" > /var/www/html/404.html
+
+# Backup the original config
+cp /etc/nginx/sites-available/default /etc/nginx/sites-available/default.backup
+
+# Create nginx configuration with redirect and custom 404
+cat > /etc/nginx/sites-available/default << 'EOF'
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+
+	root /var/www/html;
+	index index.html index.htm index.nginx-debian.html;
+
+	server_name _;
+
+	location /redirect_me {
+		return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
+	}
+
+	error_page 404 /404.html;
+	location = /404.html {
+		internal;
+	}
+
+	location / {
+		try_files $uri $uri/ =404;
+	}
+}
+EOF
+
+# Test nginx configuration
+nginx -t
 
 # Restart nginx
-sudo service nginx restart
-
+service nginx restart
