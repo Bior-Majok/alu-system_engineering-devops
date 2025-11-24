@@ -1,16 +1,51 @@
 #!/usr/bin/env bash
-# This script installs Nginx and configures a custom HTTP header X-Served-By
+# Configures Nginx with a custom HTTP header
 
 apt-get update -y
-apt-get install -y nginx
+apt-get install nginx -y
 
-SERVER_NAME=$(hostname)
+# Create the index page
+echo "Holberton School for the win!" > /var/www/html/index.html
 
-CONFIG_FILE="/etc/nginx/sites-available/default"
+# Get the hostname
+HOSTNAME=$(hostname)
 
-if ! grep -q "add_header X-Served-By" "$CONFIG_FILE"; then
-    sed -i "s|server_name _;|server_name _;\n\tadd_header X-Served-By $SERVER_NAME;|" "$CONFIG_FILE"
-fi
+# Backup the original config
+cp /etc/nginx/sites-available/default /etc/nginx/sites-available/default.backup
 
-systemctl restart nginx
+# Create nginx configuration with custom header
+cat > /etc/nginx/sites-available/default << 'EOF'
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
 
+	root /var/www/html;
+	index index.html index.htm index.nginx-debian.html;
+
+	server_name _;
+
+	add_header X-Served-By $HOSTNAME;
+
+	location /redirect_me {
+		return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
+	}
+
+	error_page 404 /404.html;
+	location = /404.html {
+		internal;
+	}
+
+	location / {
+		try_files $uri $uri/ =404;
+	}
+}
+EOF
+
+# Replace $HOSTNAME with actual hostname value
+sed -i "s/\$HOSTNAME/$HOSTNAME/g" /etc/nginx/sites-available/default
+
+# Test nginx configuration
+nginx -t
+
+# Restart nginx
+service nginx restart
